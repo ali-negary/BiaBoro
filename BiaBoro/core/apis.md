@@ -1,0 +1,41 @@
+### List of APIs
+
+- #### Sign-up
+  - Sign-up is for employees and managers.
+  - For sign up you need to send a request with the following parameters:
+    - `first name` first name of the user.
+    - `last name` last name of the user.
+    - `email`: The email of the user.
+    - `role`: The role of the user. (`employee` or `manager`)
+    - `national ID`: The national ID of the user.
+    - `phone`: The phone of the user.(optional)
+    - `username`: The username of the user.
+    - `password`: The password of the user.
+
+- #### Approve sign-up
+- #### Sign-in
+- #### Sign-out
+- #### Remove user
+- #### Get user info
+  - Accessible only for Admins, Owners, and Managers.
+  - User info can be retrieved by sending a request with at least on of the following parameters:
+    - `role`
+    - `national ID`
+    - `username`
+    - `email`
+    - `name`
+- #### Add arrival
+- #### Add departure
+- #### Approve activity
+- #### Get arrivals
+- #### Get departures
+- #### Get arrivals and departures
+- #### Get logins
+- #### Edit arrival
+- #### Edit departure
+- #### Delete arrival
+- #### Delete departure
+- #### Change password
+- #### Change username
+- #### Change user info
+
