@@ -20,10 +20,13 @@
   - Accessible only for Admins, Owners, and Managers.
   - User info can be retrieved by sending a request with at least on of the following parameters:
     - `role`
+    - `contract type`
     - `national ID`
-    - `username`
     - `email`
-    - `name`
+    - `first name`
+    - `last name`
+    - `username` (not implemented yet)
+
 - #### Add arrival
 - #### Add departure
 - #### Approve activity
