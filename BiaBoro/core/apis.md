@@ -1,6 +1,6 @@
 ### List of APIs
 
-- #### Sign-up
+- #### Sign-up (not implemented yet)
   - Sign-up is for employees and managers.
   - For sign up you need to send a request with the following parameters:
     - `first name` first name of the user.
@@ -13,6 +13,10 @@
     - `password`: The password of the user.
 
 - #### Approve sign-up
+  - Entities should approve their direct-reports after they sign up.
+  - Managers should approve employees registration using their `username`.
+  - Same for owners + they should approve Managers.
+  
 - #### Sign-in
 - #### Sign-out
 - #### Remove user
@@ -25,7 +29,9 @@
     - `email`
     - `first name`
     - `last name`
-    - `username` (not implemented yet)
+    - `username` 
+  - Admin and Owner can access everyone's data. (not implemented yet)
+  - Managers cannot access anyone above theirs. (not implemented yet)
 
 - #### Add arrival
 - #### Add departure

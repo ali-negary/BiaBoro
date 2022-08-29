@@ -5,6 +5,8 @@ from django.views.decorators.csrf import (
 from django.http.response import JsonResponse
 from rest_framework.parsers import JSONParser
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated, AllowAny
+
 
 from BiaBoro.core.models import (
     UserData,
@@ -27,13 +29,14 @@ class UserDataView(APIView):
     This view is used to handle all requests related to users.
     """
 
+    permission_classes = (AllowAny,)
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.queryset = UserData.objects.none()
 
     def get(self, request):
         # get all records in user_data table matching the query
-        query_params = dict(request.GET)
+        query_params = dict(request.query_params)
         if not query_params:
             # get all the records in user_data table
             user_data = UserData.objects.all()
@@ -46,6 +49,7 @@ class UserDataView(APIView):
                 "national_id_number": query_params.get("national_id_number", None),
                 "contract_type": query_params.get("contract_type", None),
                 "user_role": query_params.get("user_role", None),
+                "username": query_params.get("username", None),
             }
             query_without_none = {}
             for key, value in query_params.items():
@@ -57,6 +61,7 @@ class UserDataView(APIView):
                     else:
                         query_without_none[key] = value
             user_data = UserData.objects.filter(**query_without_none)
+
         # check if user_data is empty
         if user_data:
             # if not empty, serialize the data and return it
@@ -72,36 +77,87 @@ class UserDataView(APIView):
             )
             # safe=False is for allowing the data to be returned in JSON format
             # even if it is not safe.
-        return JsonResponse({"message": "No Records Found", "data": []}, status=404)
-
-    def post(self, request):
-        # create a record in user_data table
-        data = JSONParser().parse(request)
-        serializer = UserDataSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
-
-    def put(self, request):
-        # update a record in user_data table
-        data = JSONParser().parse(request)
-        serializer = UserDataSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
-
-    def delete(self, request):
-        # delete a record in user_data table
-        data = JSONParser().parse(request)
-        email = data.get("email", None)
-        national_id_number = data.get("national_id_number", None)
-        user = UserData.objects.filter(
-            email=email, national_id_number=national_id_number
+        return JsonResponse(
+            {
+                "message": "Unable to find user with specified info",
+                "ErrorCode": "NoRecordsFound",
+                "data": [],
+            },
+            status=404,
         )
-        user_serializer = UserDataSerializer(data=user)
-        if user_serializer.is_valid():
-            user.delete()
-            return JsonResponse(user_serializer.data, status=201)
-        return JsonResponse(user_serializer.errors, status=400)
+
+
+class ApproveRegister(APIView):
+    """
+    This class is used to approve registration of direct-reports.
+    """
+
+    permission_classes = (AllowAny,)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def patch(self, request):
+        # get all records in user_data table matching the query
+        query_params = dict(request.query_params)
+        get_params = {
+            "username": query_params.get("username", None),
+            "email": query_params.get("email", None),
+        }
+        query_without_none = {}
+        for key, value in get_params.items():
+            if value is not None:
+                query_without_none[key] = value[0]
+        if query_without_none:
+            user_data = UserData.objects.filter(**query_without_none)
+            if user_data:
+                # if a user is found, continue.
+                user_data_ser = UserDataSerializer(user_data, many=True)
+                user_data_dict = user_data_ser.data[0]
+                user_id = user_data_dict["id"]
+                status = query_params.get("status", None)
+                if status is not None:
+                    status = status[0]
+                    if status in ["True", "False"]:
+                        user_credentials = Credentials.objects.get(user=user_id)
+                        user_credentials.active = True if status == "True" else False
+                        user_credentials.save()
+                        response_message = (
+                            "Registration is approved."
+                            if status == "True"
+                            else "Registration is denied."
+                        )
+                        return JsonResponse(
+                            {
+                                "message": response_message,
+                                "data": query_without_none,
+                            },
+                            status=200,
+                        )
+
+                return JsonResponse(
+                    {
+                        "message": "Enter Status or Set its value to True or False",
+                        "ErrorCode": "InvalidQueryParameters",
+                        "data": [],
+                    },
+                    status=400,
+                )
+
+            return JsonResponse(
+                {
+                    "message": "Unable to find user with specified info",
+                    "ErrorCode": "NoRecordsFound",
+                    "data": [],
+                },
+                status=404,
+            )
+
+        return JsonResponse(
+            {
+                "message": "Enter either Username or Email",
+                "ErrorCode": "InvalidQueryParameters",
+                "data": [],
+            },
+            status=400,
+        )

@@ -18,10 +18,9 @@ class ArrivalDeparture(models.Model):
 
 class Credentials(models.Model):
     id = models.BigIntegerField(primary_key=True)
-    username = models.CharField(max_length=15)
     password = models.CharField(max_length=16)
     active = models.BooleanField()
-    user_id = models.ForeignKey(to="UserData", on_delete=models.DO_NOTHING)
+    user = models.ForeignKey(to="UserData", on_delete=models.DO_NOTHING)
 
     class Meta:
         managed = False
@@ -40,6 +39,7 @@ class Logins(models.Model):
 
 class UserData(models.Model):
     id = models.BigAutoField(primary_key=True)
+    username = models.CharField(max_length=15)
     first_name = models.CharField(max_length=20)
     last_name = models.CharField(max_length=20)
     email = models.CharField(max_length=35)
