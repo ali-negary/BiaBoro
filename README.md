@@ -51,3 +51,11 @@
 - #### Change username
 - #### Change user info
 
+## Next step:
+0. Learn Django User.
+1. Learn about User Authentication in Django.
+2. Develop Sign in.
+3. Develop Sign up.
+4. Develop Sign out.
+5. Develop Refresh token API.
+
