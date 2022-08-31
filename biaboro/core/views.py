@@ -8,14 +8,14 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
 
-from BiaBoro.core.models import (
+from biaboro.core.models import (
     UserData,
     UserType,
     Credentials,
     Logins,
     ArrivalDeparture,
 )
-from BiaBoro.core.serializers import (
+from biaboro.core.serializers import (
     UserDataSerializer,
     UserTypeSerializer,
     CredentialsSerializer,
