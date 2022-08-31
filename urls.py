@@ -1,6 +1,6 @@
 from django.urls import re_path
 
-from BiaBoro.core.views import UserDataView, ApproveRegister
+from biaboro.core.views import UserDataView, ApproveRegister
 
 urlpatterns = [
     re_path(r"^users$", UserDataView.as_view(), name="get_all_users"),
