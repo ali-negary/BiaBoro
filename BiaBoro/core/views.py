@@ -9,18 +9,19 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 
 
 from BiaBoro.core.models import (
-    UserData,
+    Employee,
     UserType,
-    Credentials,
+    AuthUser,
     Logins,
     ArrivalDeparture,
 )
 from BiaBoro.core.serializers import (
     UserDataSerializer,
     UserTypeSerializer,
-    CredentialsSerializer,
+    AuthUserSerializer,
     LoginsSerializer,
     ArrivalDepartureSerializer,
+    RegisterSerializer,
 )
 
 
@@ -39,7 +40,7 @@ class UserDataView(APIView):
         query_params = dict(request.query_params)
         if not query_params:
             # get all the records in user_data table
-            user_data = UserData.objects.all()
+            user_data = Employee.objects.all()
         else:
             # get the records that match the query parameters
             query_params = {
@@ -60,7 +61,7 @@ class UserDataView(APIView):
                         query_without_none[key + "__in"] = value.split(",")
                     else:
                         query_without_none[key] = value
-            user_data = UserData.objects.filter(**query_without_none)
+            user_data = Employee.objects.filter(**query_without_none)
 
         # check if user_data is empty
         if user_data:
@@ -109,7 +110,7 @@ class ApproveRegister(APIView):
             if value is not None:
                 query_without_none[key] = value[0]
         if query_without_none:
-            user_data = UserData.objects.filter(**query_without_none)
+            user_data = Employee.objects.filter(**query_without_none)
             if user_data:
                 # if a user is found, continue.
                 user_data_ser = UserDataSerializer(user_data, many=True)
@@ -160,4 +161,65 @@ class ApproveRegister(APIView):
                 "data": [],
             },
             status=400,
+        )
+
+
+class UserLogin(APIView):
+    """This class handles the login process of registered users."""
+
+    permission_classes = (AllowAny,)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def get(self, request):
+        print("get method")
+
+    def post(self, request):
+        print("post method")
+
+
+class UserLogout(APIView):
+    """This class handles the logout process of registered users."""
+
+    permission_classes = (AllowAny,)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def get(self, request):
+        print("get method")
+
+    def post(self, request):
+        print("post method")
+
+
+class UserRegister(APIView):
+    """This class handles the registration process of registered users."""
+
+    permission_classes = (AllowAny,)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def get(self, request):
+        # check registration
+        print("get method")
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.query_params)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(
+                {
+                    "message": f"New user '{serializer.data['username']}' is registered.",
+                },
+                status=200,
+            )
+        return JsonResponse(
+            {
+                "message": serializer.errors,
+                "ErrorCode": "RegistrationFailed",
+            },
+            status=401,
         )

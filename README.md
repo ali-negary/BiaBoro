@@ -3,17 +3,12 @@
 ---------------------------------------
 ### List of APIs
 
-- #### Sign-up (not implemented yet)
+- #### Sign-up
   - Sign-up is for employees and managers.
   - For sign up you need to send a request with the following parameters:
-    - `first name` first name of the user.
-    - `last name` last name of the user.
-    - `email`: The email of the user.
-    - `role`: The role of the user. (`employee` or `manager`)
-    - `national ID`: The national ID of the user.
-    - `phone`: The phone of the user.(optional)
     - `username`: The username of the user.
     - `password`: The password of the user.
+    - `password_2`: The confirmation of the password.
 
 - #### Approve sign-up
   - Entities should approve their direct-reports after they sign up.

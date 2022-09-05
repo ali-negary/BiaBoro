@@ -16,8 +16,16 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import re_path, path, include
 
+from BiaBoro.core.views import *
+
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("api-auth/", include("rest_framework.urls")),
-    re_path(r"^", include("urls")),
+    re_path(r"^api/user/info$", UserDataView.as_view(), name="get_all_users"),
+    re_path(r"^api/user/register$", UserRegister.as_view(), name="register_user"),
+    re_path(r"^api/user/login$", UserLogin.as_view(), name="login_user"),
+    re_path(r"^api/user/logout$", UserLogout.as_view(), name="logout_user"),
+    re_path(
+        r"^api/user/approve$",
+        ApproveRegister.as_view(),
+        name="approve_user",
+    ),
 ]
