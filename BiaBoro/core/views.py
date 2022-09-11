@@ -1,6 +1,8 @@
 import logging
+from datetime import timedelta
 
 import django.db.utils
+from django.utils import timezone
 from django.shortcuts import render
 from django.views.decorators.csrf import (
     csrf_exempt,
@@ -22,13 +24,13 @@ from rest_framework.authtoken.models import Token
 from BiaBoro.core.models import (
     Employee,
     UserType,
-    Logins,
+    LoginLogout,
     ArrivalDeparture,
 )
 from BiaBoro.core.serializers import (
     EmployeeSerializer,
     UserTypeSerializer,
-    LoginsSerializer,
+    LoginLogoutSerializer,
     ArrivalDepartureSerializer,
     RegisterSerializer,
 )
@@ -90,7 +92,7 @@ class UserDataView(APIView):
         return JsonResponse(
             {
                 "message": "Unable to find user with specified info",
-                "ErrorCode": "NoRecordsFound",
+                "ErrorCode": "NoRecordFound",
                 "data": [],
             },
             status=404,
@@ -108,64 +110,38 @@ class ApproveRegister(APIView):
         super().__init__(**kwargs)
 
     def patch(self, request):
-        # get all records in user_data table matching the query
-        query_params = dict(request.query_params)
-        get_params = {
-            "username": query_params.get("username", None),
-            "email": query_params.get("email", None),
-        }
-        query_without_none = {}
-        for key, value in get_params.items():
-            if value is not None:
-                query_without_none[key] = value[0]
-        if query_without_none:
-            user_data = Employee.objects.filter(**query_without_none)
-            if user_data:
-                # if a user is found, continue.
-                user_data_ser = EmployeeSerializer(user_data, many=True)
-                user_data_dict = user_data_ser.data[0]
-                user_id = user_data_dict["id"]
-                status = query_params.get("status", None)
-                if status is not None:
-                    status = status[0]
-                    if status in ["True", "False"]:
-                        user_credentials = Credentials.objects.get(user=user_id)
-                        user_credentials.active = True if status == "True" else False
-                        user_credentials.save()
-                        response_message = (
-                            "Registration is approved."
-                            if status == "True"
-                            else "Registration is denied."
-                        )
-                        return JsonResponse(
-                            {
-                                "message": response_message,
-                                "data": query_without_none,
-                            },
-                            status=200,
-                        )
-
+        username = request.query_params.get("username", None)
+        user_status = request.query_params.get("status", None)
+        if (username is not None) and (user_status is not None):
+            try:
+                user = User.objects.get(username=username)
+                user_status = True if user_status.lower() == "approve" else False
+                user.is_active = user_status
+                user.save()
+                response_message = (
+                    "User activated." if user_status else "User deactivated."
+                )
                 return JsonResponse(
                     {
-                        "message": "Enter Status or Set its value to True or False",
-                        "ErrorCode": "InvalidQueryParameters",
-                        "data": [],
+                        "message": response_message,
+                        "data": {"username": username},
                     },
-                    status=400,
+                    status=200,
                 )
-
-            return JsonResponse(
-                {
-                    "message": "Unable to find user with specified info",
-                    "ErrorCode": "NoRecordsFound",
-                    "data": [],
-                },
-                status=404,
-            )
-
+            except User.DoesNotExist:
+                return JsonResponse(
+                    {
+                        "message": (
+                            f"Unable to find user with specified info "
+                            f"(username:'{username}').",
+                        ),
+                        "ErrorCode": "NoRecordFound",
+                    },
+                    status=404,
+                )
         return JsonResponse(
             {
-                "message": "Enter either Username or Email",
+                "message": "Enter Username and Status",
                 "ErrorCode": "InvalidQueryParameters",
                 "data": [],
             },
@@ -200,54 +176,6 @@ class UserRegister(APIView):
         )
 
 
-class CompleteProfile(APIView):
-    """This class handles the users profile completion for registered users."""
-
-    authentication_classes = [
-        TokenAuthentication,
-    ]
-    permission_classes = [
-        IsAuthenticated,
-    ]
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def post(self, request):
-        content = {
-            "user": str(request.user),  # `django.contrib.auth.User` instance.
-            "auth": str(request.auth),  # None
-        }
-        profile_items = dict(request.query_params)
-        user = request.user
-        if user:
-            user_id = user.id
-            if serializer.is_valid():
-                serializer.save()
-                return JsonResponse(
-                    {
-                        "message": f"New user '{serializer.data['username']}' is registered.",
-                    },
-                    status=200,
-                )
-            return JsonResponse(
-                {
-                    "message": f"Unable to find user {username}",
-                    "ErrorCode": "NoRecordsFound",
-                    "data": [],
-                },
-                status=404,
-            )
-        return JsonResponse(
-            {
-                "message": "Enter Username",
-                "ErrorCode": "InvalidQueryParameters",
-                "data": [],
-            },
-            status=400,
-        )
-
-
 class UserLogin(APIView):
     """This class handles login requests."""
 
@@ -262,6 +190,7 @@ class UserLogin(APIView):
         super().__init__(**kwargs)
 
     def post(self, request):
+        login_time = timezone.now()
         body = request.data
         username = body.get("username", "")
         if username:
@@ -277,6 +206,15 @@ class UserLogin(APIView):
                         logging.info(f'User "{username}" is already logged in.')
                     except Token.DoesNotExist:
                         user_token = Token.objects.create(user=user)
+                        logging.info(f'User "{username}" logged in.')
+                        # update the last_login
+                        user.last_login = login_time
+                        user.save()
+                        # add new record to login_logout
+                        login = LoginLogout(
+                            record_date=login_time, record_type="login", user_id=user.id
+                        )
+                        login.save()
                     return JsonResponse(
                         {
                             "message": f"User '{username}' {is_logged_in} logged in.",
@@ -327,6 +265,12 @@ class UserLogout(APIView):
         user = request.user
         user_id = user.id
         Token.objects.get(user_id=user_id).delete()
+        # add new record to login_logout
+        logout_time = timezone.now()
+        logout = LoginLogout(
+            record_date=logout_time, record_type="logout", user_id=user.id
+        )
+        logout.save()
         return JsonResponse(
             {
                 "message": f"User '{user.username}' is logged out.",

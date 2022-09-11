@@ -19,7 +19,7 @@ class ArrivalDeparture(models.Model):
 
 class Employee(models.Model):
     id = models.BigAutoField(primary_key=True)
-    national_id_number = models.CharField(unique=True, max_length=10)
+    national_id = models.CharField(unique=True, max_length=10)
     employee_type = models.ForeignKey("UserType", models.DO_NOTHING)
     access_date_limit = models.DateTimeField()
     employee_role = models.CharField(max_length=20)
@@ -35,14 +35,15 @@ class Employee(models.Model):
         db_table = "employee"
 
 
-class Logins(models.Model):
+class LoginLogout(models.Model):
     record_id = models.BigAutoField(primary_key=True)
-    login_datetime = models.DateTimeField()
-    user = models.ForeignKey(Employee, models.DO_NOTHING)
+    record_date = models.DateTimeField()
+    record_type = models.CharField(max_length=6)
+    user = models.ForeignKey(User, models.DO_NOTHING)
 
     class Meta:
         managed = False
-        db_table = "logins"
+        db_table = "login_logout"
 
 
 class UserType(models.Model):

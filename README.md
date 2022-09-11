@@ -21,19 +21,23 @@
     - `last name`
     - `email`
 
-- #### Approve sign-up
+- #### Approve sign-up 
   - Entities should approve their direct-reports after they sign up.
   - Managers should approve employees registration using their `username`.
   - Same for owners + they should approve Managers.
+  - (Implemented without applying hierarchy. Now anyone can activate/deactivate anyone.)
   
 - #### Sign-in
   - Authentication implemented using Token Auth method.
+  - With each login, `last_login` column in `auth_user` will be updated for the user.
+  - With each login, a new row will be added to `login_logout` table.
   
 - #### Sign-out
-  - When logout endpoint is called, token of the user will be removed from authtoken table if there is any token.
+  - When logout endpoint is called, token of the user will be removed from `authtoken` table if there is any token.
+  - With each login, a new row will be added to `login_logout` table.
   
 - #### Remove user
-- #### Get user info
+- #### Get user info (Needs change)
   - Accessible only for Admins, Owners, and Managers.
   - User info can be retrieved by sending a request with at least on of the following parameters:
     - `role`

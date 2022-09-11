@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Employee, UserType, Logins, ArrivalDeparture
+from .models import Employee, UserType, LoginLogout, ArrivalDeparture
 from django.contrib.auth.models import User
 
 
@@ -21,9 +21,9 @@ class AuthUserSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class LoginsSerializer(serializers.ModelSerializer):
+class LoginLogoutSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Logins
+        model = LoginLogout
         fields = "__all__"
 
 
