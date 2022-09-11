@@ -3,7 +3,7 @@ from .models import Employee, UserType, Logins, ArrivalDeparture
 from django.contrib.auth.models import User
 
 
-class UserDataSerializer(serializers.ModelSerializer):
+class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
         fields = "__all__"
@@ -57,9 +57,11 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         credentials = User(
             username=username,
-            password=password,
             is_active=False,
+            is_staff=True,
             email=f"{username}@sample.com",
         )
+        credentials.set_password(password)
+
         credentials.save()
         return credentials
