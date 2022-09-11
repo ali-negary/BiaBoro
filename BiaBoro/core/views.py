@@ -176,6 +176,56 @@ class UserRegister(APIView):
         )
 
 
+class CompleteProfile(APIView):
+    """This class handles the users profile completion for registered users."""
+
+    authentication_classes = [
+        TokenAuthentication,
+    ]
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def post(self, request):
+        user = request.user
+        received_items = {
+            key: value[0] for key, value in dict(request.query_params).items()
+        }
+        access_limit = user.date_joined + timedelta(days=7)
+        try:
+            employee = Employee(
+                user_id=user.id,
+                national_id=received_items["national_id"],
+                employee_type_id=3,
+                employee_role=received_items["role"],
+                phone=received_items["phone"],
+                contract_type=received_items["contract_type"],
+                first_name=received_items["first_name"],
+                last_name=received_items["last_name"],
+                email=received_items["email"],
+                access_date_limit=access_limit,
+            )
+            employee.save()
+            return JsonResponse(
+                {
+                    "message": f"Profile is completed for user '{user.username}'.",
+                },
+                status=200,
+            )
+        except KeyError as error:
+            missing_key = error.args[0]
+            return JsonResponse(
+                {
+                    "message": f"Parameter '{missing_key}' is missing.",
+                    "ErrorCode": "InvalidQueryParameters",
+                },
+                status=400,
+            )
+
+
 class UserLogin(APIView):
     """This class handles login requests."""
 
