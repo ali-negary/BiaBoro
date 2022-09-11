@@ -104,7 +104,12 @@ class ApproveRegister(APIView):
     This class is used to approve registration of direct-reports.
     """
 
-    permission_classes = (AllowAny,)
+    authentication_classes = [
+        TokenAuthentication,
+    ]
+    permission_classes = [
+        IsAuthenticated,
+    ]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
