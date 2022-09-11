@@ -10,7 +10,7 @@
     - `password`: The password of the user.
     - `password_2`: The confirmation of the password.
     
-- #### Complete Profile (Not implemented yet)
+- #### Complete Profile
   - Each user should complete their information on their profile.
   - The items required from the employee are:
     - `national id number`
@@ -36,7 +36,6 @@
   - When logout endpoint is called, token of the user will be removed from `authtoken` table if there is any token.
   - With each login, a new row will be added to `login_logout` table.
   
-- #### Remove user
 - #### Get user info (Needs change)
   - Accessible only for Admins, Owners, and Managers.
   - User info can be retrieved by sending a request with at least on of the following parameters:
@@ -50,8 +49,8 @@
   - Admin and Owner can access everyone's data. (not implemented yet)
   - Managers cannot access anyone above theirs. (not implemented yet)
 
-- #### Add arrival
-- #### Add departure
+- #### Remove user
+- #### Add arrival/departure
 - #### Approve activity
 - #### Get arrivals
 - #### Get departures
