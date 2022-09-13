@@ -50,7 +50,7 @@
   - No one can access anyone above theirs. (not implemented yet)
 
 - #### Remove user
-  - Removes a user using its `email` or `username`.
+  - Removes a user using its `username`.
   - Accessible only for Admins, Owners, and Managers.
   
 - #### Add arrival/departure
