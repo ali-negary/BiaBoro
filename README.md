@@ -36,7 +36,7 @@
   - When logout endpoint is called, token of the user will be removed from `authtoken` table if there is any token.
   - With each login, a new row will be added to `login_logout` table.
   
-- #### Get user info (Needs change)
+- #### Get user info
   - Accessible only for Admins, Owners, and Managers.
   - User info can be retrieved by sending a request with at least on of the following parameters:
     - `role`
@@ -47,9 +47,12 @@
     - `last name`
     - `username` 
   - Admin and Owner can access everyone's data. (not implemented yet)
-  - Managers cannot access anyone above theirs. (not implemented yet)
+  - No one can access anyone above theirs. (not implemented yet)
 
 - #### Remove user
+  - Removes a user using its `email` or `username`.
+  - Accessible only for Admins, Owners, and Managers.
+  
 - #### Add arrival/departure
 - #### Approve activity
 - #### Get arrivals

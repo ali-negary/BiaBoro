@@ -41,41 +41,52 @@ class UserDataView(APIView):
     This view is used to handle all requests related to users.
     """
 
-    permission_classes = (AllowAny,)
+    authentication_classes = [
+        TokenAuthentication,
+    ]
+    permission_classes = [
+        IsAuthenticated,
+    ]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def get(self, request):
+        user_data = None
         # get all records in user_data table matching the query
         query_params = dict(request.query_params)
         if not query_params:
             # get all the records in user_data table
             user_data = Employee.objects.all()
         else:
-            # get the records that match the query parameters
-            query_params = {
-                "first_name": query_params.get("first_name", None),
-                "last_name": query_params.get("last_name", None),
-                "email": query_params.get("email", None),
-                "national_id_number": query_params.get("national_id_number", None),
-                "contract_type": query_params.get("contract_type", None),
-                "user_role": query_params.get("user_role", None),
-                "username": query_params.get("username", None),
-            }
-            query_without_none = {}
-            for key, value in query_params.items():
-                if value is not None:
-                    value = value[0]
-                    if "," in value:
-                        # use __in filter if there are multiple values
-                        query_without_none[key + "__in"] = value.split(",")
-                    else:
-                        query_without_none[key] = value
-            user_data = Employee.objects.filter(**query_without_none)
+            if "username" in query_params:
+                username = query_params["username"][0]
+                requested_user = User.objects.get(username=username)
+                if requested_user:
+                    user_data = Employee.objects.filter(user_id=requested_user.id)
+            else:
+                # get the records that match the query parameters
+                query_params = {
+                    "first_name": query_params.get("first_name", None),
+                    "last_name": query_params.get("last_name", None),
+                    "email": query_params.get("email", None),
+                    "national_id_number": query_params.get("national_id_number", None),
+                    "contract_type": query_params.get("contract_type", None),
+                    "user_role": query_params.get("user_role", None),
+                }
+                query_without_none = {}
+                for key, value in query_params.items():
+                    if value is not None:
+                        value = value[0]
+                        if "," in value:
+                            # use __in filter if there are multiple values
+                            query_without_none[key + "__in"] = value.split(",")
+                        else:
+                            query_without_none[key] = value
+                user_data = Employee.objects.filter(**query_without_none)
 
         # check if user_data is empty
-        if user_data:
+        if user_data is not None:
             # if not empty, serialize the data and return it
             serializer = EmployeeSerializer(user_data, many=True)
             return JsonResponse(
@@ -332,4 +343,52 @@ class UserLogout(APIView):
                 "ErrorCode": "UserLoggedOut",
             },
             status=200,
+        )
+
+
+class RemoveUser(APIView):
+    """This class handles remove user requests."""
+
+    authentication_classes = [
+        TokenAuthentication,
+    ]
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def patch(self, request):
+        user = request.user
+        body = request.data
+        username = body.get("username", None)
+        if username is not None:
+            try:
+                remove_user = User.objects.get(username=username)
+                remove_user.delete()
+                return JsonResponse(
+                    {
+                        "message": f"User '{username}' is removed by {user.username}.",
+                        "ErrorCode": "UserRemoved",
+                    },
+                    status=200,
+                )
+            except User.DoesNotExist:
+                return JsonResponse(
+                    {
+                        "message": (
+                            f"Unable to find user with specified username:'{username}'.",
+                        ),
+                        "ErrorCode": "NoRecordFound",
+                    },
+                    status=404,
+                )
+        return JsonResponse(
+            {
+                "message": "Enter Username",
+                "ErrorCode": "InvalidQueryParameters",
+                "data": [],
+            },
+            status=400,
         )

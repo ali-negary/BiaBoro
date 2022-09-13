@@ -33,4 +33,9 @@ urlpatterns = [
         ApproveRegister.as_view(),
         name="approve_user",
     ),
+    re_path(
+        r"^api/user/remove$",
+        RemoveUser.as_view(),
+        name="remove_user",
+    ),
 ]
