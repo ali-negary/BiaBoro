@@ -59,10 +59,25 @@
     - `datetime`: date and time of action.
     - `type`: indicates that action is arrival or departure.
     - `description`: any short description about the record. i.e. *have doctor's appointment.*
-    
+
+- #### Get activity
+  - Gets the employee's activity based using their username or email.
+  - The following items are needed in the request body:
+    - `email`: employee's email.
+    - `username`: employee's username.
+    - `action_type`: it can be one of `arrival`, `departure`, or `all`.
+    - `approved`: it can be one of `denied`, `approved`, or `all`.
+    - `from_date`: start of time range in `yyyy-mm-dd` format.
+    - `to_date`: end of time range in `yyyy-mm-dd` format.
+  
 - #### Approve activity
-- #### Get arrivals
-- #### Get departures
+  - Send approval result for the employee's activity using their employee_id.
+  - The following items are needed in the request body:
+    - `employee_id`: an integer which is the id of the employee in the `employee` table.
+    - `records`: a list of dictionaries with keys record_id and approval_state:
+      - `record_id`: an integer which is the id of the record in the `arrival_departure` table.
+      - `approval_state`: it can be either of `deny`, `approve`.
+    
 - #### Get arrivals and departures
 - #### Get logins
 - #### Edit arrival

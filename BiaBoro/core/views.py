@@ -1,5 +1,6 @@
 import logging
-from datetime import timedelta
+import json
+from datetime import timedelta, datetime
 
 import django.db.utils
 from django.utils import timezone
@@ -20,6 +21,8 @@ from django.contrib.auth.models import User
 
 from rest_framework.authtoken.models import Token
 
+from django.core.serializers.json import DjangoJSONEncoder
+from django.core.exceptions import ValidationError
 
 from BiaBoro.core.models import (
     Employee,
@@ -34,6 +37,11 @@ from BiaBoro.core.serializers import (
     ArrivalDepartureSerializer,
     RegisterSerializer,
 )
+
+from BiaBoro.core.config import timezone_map
+
+
+logger = logging.getLogger()
 
 
 class UserDataView(APIView):
@@ -89,6 +97,7 @@ class UserDataView(APIView):
         if user_data is not None:
             # if not empty, serialize the data and return it
             serializer = EmployeeSerializer(user_data, many=True)
+            logger.info(f"Users Found: {json.dumps(serializer.data)}")
             return JsonResponse(
                 {
                     "message": f"Users Found",
@@ -100,6 +109,7 @@ class UserDataView(APIView):
             )
             # safe=False is for allowing the data to be returned in JSON format
             # even if it is not safe.
+        logger.info("Unable to find user with specified info")
         return JsonResponse(
             {
                 "message": "Unable to find user with specified info",
@@ -137,6 +147,7 @@ class ApproveRegister(APIView):
                 response_message = (
                     "User activated." if user_status else "User deactivated."
                 )
+                logger.info(response_message)
                 return JsonResponse(
                     {
                         "message": response_message,
@@ -145,6 +156,9 @@ class ApproveRegister(APIView):
                     status=200,
                 )
             except User.DoesNotExist:
+                logger.info(
+                    f"Unable to find user with specified info (username:'{username}')."
+                )
                 return JsonResponse(
                     {
                         "message": (
@@ -155,6 +169,7 @@ class ApproveRegister(APIView):
                     },
                     status=404,
                 )
+        logger.info("username or status parameter is missing.")
         return JsonResponse(
             {
                 "message": "Enter Username and Status",
@@ -177,12 +192,14 @@ class UserRegister(APIView):
         serializer = RegisterSerializer(data=request.query_params)
         if serializer.is_valid():
             serializer.save()
+            logger.info(f"New user '{serializer.data['username']}' is registered.")
             return JsonResponse(
                 {
                     "message": f"New user '{serializer.data['username']}' is registered.",
                 },
                 status=200,
             )
+        logger.info(f"Serializer error: {serializer.errors}")
         return JsonResponse(
             {
                 "message": serializer.errors,
@@ -223,6 +240,7 @@ class CompleteProfile(APIView):
                 access_date_limit=access_limit,
             )
             employee.save()
+            logger.info(f"Profile is completed for user '{user.username}'.")
             return JsonResponse(
                 {
                     "message": f"Profile is completed for user '{user.username}'.",
@@ -231,6 +249,7 @@ class CompleteProfile(APIView):
             )
         except KeyError as error:
             missing_key = error.args[0]
+            logger.info(f"Parameter '{missing_key}' is missing.")
             return JsonResponse(
                 {
                     "message": f"Parameter '{missing_key}' is missing.",
@@ -267,10 +286,10 @@ class UserLogin(APIView):
                     try:
                         user_token = Token.objects.get(user_id=user.id)
                         is_logged_in = "is already"
-                        logging.info(f'User "{username}" is already logged in.')
+                        logger.info(f'User "{username}" is already logged in.')
                     except Token.DoesNotExist:
                         user_token = Token.objects.create(user=user)
-                        logging.info(f'User "{username}" logged in.')
+                        logger.info(f'User "{username}" logged in.')
                         # update the last_login
                         user.last_login = login_time
                         user.save()
@@ -287,6 +306,7 @@ class UserLogin(APIView):
                         status=200,
                     )
 
+                logger.info("the password parameters do not match.")
                 return JsonResponse(
                     {
                         "message": "Password does not match",
@@ -295,6 +315,7 @@ class UserLogin(APIView):
                     status=401,
                 )
 
+            logger.info("password parameter is missing.")
             return JsonResponse(
                 {
                     "message": "Enter password.",
@@ -303,6 +324,7 @@ class UserLogin(APIView):
                 status=400,
             )
 
+        logger.info("username parameter is missing.")
         return JsonResponse(
             {
                 "message": "Enter username.",
@@ -335,6 +357,7 @@ class UserLogout(APIView):
             record_date=logout_time, record_type="logout", user_id=user.id
         )
         logout.save()
+        logger.info(f"User '{user.username}' is logged out.")
         return JsonResponse(
             {
                 "message": f"User '{user.username}' is logged out.",
@@ -420,8 +443,24 @@ class AddArrivalDeparture(APIView):
                 status=404,
             )
         try:
+            try:
+                date_param = datetime.strptime(
+                    received_items["datetime"], "%Y-%m-%d %H:%M:%S"
+                )
+                dt_with_tz = date_param.replace(
+                    tzinfo=timezone_map[received_items["timezone"]]
+                )
+            except ValueError as error:
+                logger.info(f"Invalid date format: {error.args[0]}")
+                return JsonResponse(
+                    {
+                        "message": f"Invalid date parameter.",
+                        "ErrorCode": "InvalidQueryParameters",
+                    },
+                    status=400,
+                )
             new_AD = ArrivalDeparture(
-                action_date=received_items["datetime"],
+                action_date=dt_with_tz,
                 action_type=received_items["type"],
                 report_date=report_date,
                 employee=employee,
@@ -429,6 +468,9 @@ class AddArrivalDeparture(APIView):
                 description=received_items["description"],
             )
             new_AD.save()
+            logger.info(
+                f"New {received_items['type']} added for employee '{employee.id}'."
+            )
             return JsonResponse(
                 {
                     "message": f"New {received_items['type']} added for employee.",
@@ -438,6 +480,7 @@ class AddArrivalDeparture(APIView):
             )
         except KeyError as error:
             missing_key = error.args[0]
+            logger.info(f"Parameter '{missing_key}' is missing.")
             return JsonResponse(
                 {
                     "message": f"Parameter '{missing_key}' is missing.",
@@ -461,10 +504,148 @@ class ApproveActivity(APIView):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def get(self):
-        # get employees activities using username, email, or employee_id and date.
-        pass
+    def get(self, request):
+        # get employees activities using username or email and date.
+        received_items = dict(request.data)
+        try:
+            employee_params = {
+                "email": received_items.get("email", None),
+                "username": received_items.get("username", None),
+            }
+            query_params = {
+                "is_approved": received_items["approved"],
+                "action_type": received_items["action_type"],
+                "from_date": received_items.get("from_date", None),
+                "to_date": received_items.get("to_date", None),
+            }
+            if employee_params["username"] is not None:
+                user_details = User.objects.get(username=employee_params["username"])
+                employee = Employee.objects.get(user_id=user_details.id)
+            elif employee_params["email"] is not None:
+                employee = Employee.objects.get(email=employee_params["email"])
+            else:
+                raise KeyError(["username", "email"])
+            query_params["employee_id"] = employee.id
 
-    def patch(self):
+            # remove None-valued parameters.
+            query_params = {
+                key: value for key, value in query_params.items() if value is not None
+            }
+            # remove items that are set to 'all'.
+            query_params = {
+                key: value for key, value in query_params.items() if value != "all"
+            }
+            if "from_date" in query_params:
+                query_params["action_date__gte"] = datetime.strptime(
+                    query_params.pop("from_date"), "%Y-%m-%d"
+                )
+            if "to_date" in query_params:
+                query_params["action_date__lte"] = datetime.strptime(
+                    query_params.pop("to_date"), "%Y-%m-%d"
+                )
+
+            query_result = ArrivalDeparture.objects.filter(**query_params).values(
+                "record_id",
+                "action_date",
+                "action_type",
+                "description",
+                "is_approved",
+                "approve_date",
+            )
+            result_json = json.loads(
+                json.dumps(list(query_result), cls=DjangoJSONEncoder)
+            )
+            return JsonResponse(
+                {
+                    "message": f"Found {len(result_json)} records for employee {employee.id}",
+                    "data": {
+                        "employee_id": employee.id,
+                        "employee_name": f"{employee.first_name} - {employee.last_name}",
+                        "records": result_json,
+                    },
+                },
+                status=200,
+            )
+        except Exception as error:
+            if isinstance(error, User.DoesNotExist):
+                logger.info(f"Requested user not found: {json.dumps(received_items)}")
+                return JsonResponse(
+                    {
+                        "message": f"Requested user not found: {json.dumps(received_items)}",
+                        "ErrorCode": "NoRecordFound",
+                    },
+                    status=400,
+                )
+            if isinstance(error, Employee.DoesNotExist):
+                logger.info(
+                    f"No employee matches the request: {json.dumps(received_items)}"
+                )
+                return JsonResponse(
+                    {
+                        "message": (
+                            f"No employee matches the request: {json.dumps(received_items)}"
+                        ),
+                        "ErrorCode": "NoRecordFound",
+                    },
+                    status=400,
+                )
+            elif isinstance(error, KeyError):
+                missing_keys = error.args[0]
+                logger.info(f"One of {', '.join(missing_keys)} should be provided.")
+                return JsonResponse(
+                    {
+                        "message": f"One of {', '.join(missing_keys)} should be provided.",
+                        "ErrorCode": "InvalidQueryParameters",
+                    },
+                    status=400,
+                )
+            else:
+                logger.info(f"Unexpected Error: {error}")
+                return JsonResponse(
+                    {
+                        "message": f"An unexpected error occurred.",
+                        "ErrorCode": "UnexpectedError",
+                    },
+                    status=500,
+                )
+
+    def patch(self, request):
         # approve or deny employee's records.
-        pass
+        received_items = dict(request.data)
+        decision_date = timezone.now()
+        employee_id = received_items.pop("employee_id")
+        records = {}
+        for record in received_items["records"]:
+            if record["approve_state"] == "deny":
+                records[record["record_id"]] = "denied"
+            elif record["approve_state"] == "approve":
+                records[record["record_id"]] = "approved"
+        query_result = ArrivalDeparture.objects.filter(
+            record_id__in=list(records.keys())
+        )
+        for db_record in query_result:
+            record_id = db_record.record_id
+            db_record.is_approved = records[record_id]
+            db_record.approve_date = decision_date
+            try:
+                db_record.save()
+                records[record_id] = "success"
+            except Exception as error:
+                if isinstance(error, ValidationError):
+                    records[record_id] = "failure"
+                else:
+                    logger.info(f"Unexpected Error: {error}")
+                    return JsonResponse(
+                        {
+                            "message": f"An unexpected error occurred.",
+                            "ErrorCode": "UnexpectedError",
+                        },
+                        status=500,
+                    )
+        return JsonResponse(
+            {
+                "message": f"Activity status updated for employee '{employee_id}.",
+                "data": records,
+            },
+            status=200,
+        )
