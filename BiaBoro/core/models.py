@@ -1,16 +1,27 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 
 class ArrivalDeparture(models.Model):
     record_id = models.BigAutoField(primary_key=True)
-    record_date = models.DateTimeField()
+    action_date = models.DateTimeField()
+    report_date = models.DateTimeField(default=timezone.now)
     action_type = models.CharField(
         max_length=10, choices=[("arrival", "Arrival"), ("departure", "Departure")]
     )
     employee = models.ForeignKey("Employee", on_delete=models.DO_NOTHING)
     description = models.TextField(default="", null=False)
-    is_approved = models.BooleanField()
+    is_approved = models.CharField(
+        max_length=14,
+        choices=[
+            ("approved", "Approved"),
+            ("denied", "Denied"),
+            ("not-specified", "Not-Specified"),
+        ],
+        default="not-specified",
+    )
+    approve_date = models.DateTimeField()
 
     class Meta:
         managed = False

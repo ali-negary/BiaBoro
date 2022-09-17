@@ -207,9 +207,7 @@ class CompleteProfile(APIView):
 
     def post(self, request):
         user = request.user
-        received_items = {
-            key: value[0] for key, value in dict(request.query_params).items()
-        }
+        received_items = dict(request.data)
         access_limit = user.date_joined + timedelta(days=7)
         try:
             employee = Employee(
@@ -392,3 +390,81 @@ class RemoveUser(APIView):
             },
             status=400,
         )
+
+
+class AddArrivalDeparture(APIView):
+    """This class handles users input on their daily arrivals and departures."""
+
+    authentication_classes = [
+        TokenAuthentication,
+    ]
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def post(self, request):
+        user = request.user
+        received_items = dict(request.data)
+        report_date = timezone.now()
+        try:
+            employee = Employee.objects.get(user_id=user.id)
+        except Employee.DoesNotExist:
+            return JsonResponse(
+                {
+                    "message": "No employee matches this user.",
+                    "ErrorCode": "NoRecordFound",
+                },
+                status=404,
+            )
+        try:
+            new_AD = ArrivalDeparture(
+                action_date=received_items["datetime"],
+                action_type=received_items["type"],
+                report_date=report_date,
+                employee=employee,
+                is_approved="not-specified",
+                description=received_items["description"],
+            )
+            new_AD.save()
+            return JsonResponse(
+                {
+                    "message": f"New {received_items['type']} added for employee.",
+                    "ErrorCode": "RecordAdded",
+                },
+                status=200,
+            )
+        except KeyError as error:
+            missing_key = error.args[0]
+            return JsonResponse(
+                {
+                    "message": f"Parameter '{missing_key}' is missing.",
+                    "ErrorCode": "InvalidQueryParameters",
+                },
+                status=400,
+            )
+
+
+class ApproveActivity(APIView):
+    """This class handles requests regarding managers
+    requests to approve or deny employees activities."""
+
+    authentication_classes = [
+        TokenAuthentication,
+    ]
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def get(self):
+        # get employees activities using username, email, or employee_id and date.
+        pass
+
+    def patch(self):
+        # approve or deny employee's records.
+        pass

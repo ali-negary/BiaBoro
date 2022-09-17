@@ -29,13 +29,23 @@ urlpatterns = [
     re_path(r"^api/user/login$", UserLogin.as_view(), name="login_user"),
     re_path(r"^api/user/logout$", UserLogout.as_view(), name="logout_user"),
     re_path(
-        r"^api/user/approve$",
+        r"^api/user/approve_register$",
         ApproveRegister.as_view(),
-        name="approve_user",
+        name="approve_register",
     ),
     re_path(
         r"^api/user/remove$",
         RemoveUser.as_view(),
         name="remove_user",
+    ),
+    re_path(
+        r"^api/user/add_arrival_departure$",
+        AddArrivalDeparture.as_view(),
+        name="add_arrival_departure",
+    ),
+    re_path(
+        r"^api/user/approve_activity$",
+        ApproveActivity.as_view(),
+        name="approve_activity",
     ),
 ]

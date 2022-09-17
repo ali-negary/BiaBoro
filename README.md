@@ -54,6 +54,12 @@
   - Accessible only for Admins, Owners, and Managers.
   
 - #### Add arrival/departure
+  - Employees and Managers can add their arrivals\departures.
+  - The following items are needed in the request body:
+    - `datetime`: date and time of action.
+    - `type`: indicates that action is arrival or departure.
+    - `description`: any short description about the record. i.e. *have doctor's appointment.*
+    
 - #### Approve activity
 - #### Get arrivals
 - #### Get departures
